@@ -18,6 +18,9 @@ verifyPIN = [0x00, 0x20, 0x00, 0x11, 0x0C]
 MSE_SET_DST = [0x00, 0x22, 0x41, 0xB6, 0x06]
 PSO_HASH = [0x00, 0x2A, 0x90, 0xA0, 0x20]
 PSO_CDS = [0x00, 0x2A, 0x9E, 0x9A, 0x00, 0xFF, 0x00]
+
+selectFile = [0x00, 0xA4, 0x04, 0x00, 0x02, 0xB0, 0x01, 0x00]
+selectFile2 = [0x00, 0xB0, 0x00, 0x00, 0x00]
 ####################################################
 
 if(len(sys.argv) == 1):
@@ -75,8 +78,11 @@ def init():
     if (sw1 != 0x90 and sw2 != 0x0):
         print("ERROR AL LEER DOCUMENTO")
     else:
+        print("Waiting...")
         time.sleep(1)
 
+
+def sign(toSign):
     ########### COMANDO verifyPIN ################
     data, sw1, sw2 = enviarAPDU(verifyPIN + toPinHex(userpin))
     if (sw1 == 0x90 and sw2 == 0x0):
@@ -86,7 +92,7 @@ def init():
             MSE_SET_DST + [0x84, 0x01, 0x01, 0x80, 0x01, 0x02])
 
         ########### COMANDO PSO_HASH ################
-        data, sw1, sw2 = enviarAPDU(PSO_HASH + [0x90, 0x19] + MIHASH)
+        data, sw1, sw2 = enviarAPDU(PSO_HASH + [0x90, 0x19] + toSign)
 
         ########### COMANDO PSO_Compute Digital Signature: ################
         data, sw1, sw2 = enviarAPDU(PSO_CDS)
@@ -101,6 +107,7 @@ def init():
 ###     - readerData ( void ) : imprime la marca y modelo del Lector    ###
 ###     - firmar (pin, string): hace un hash y encripta con la clave    ###
 ###                             privada un string pasado por parametro  ###
+###     - datos ( void ):       devuelve datos de la cedula conectada   ###
 ###########################################################################
 
 
@@ -110,5 +117,15 @@ if (action == 'readerData'):
 elif (action == 'firmar'):
     MIHASH = toHex(encrypt_string(stringhash))
     init()
+    sign(MIHASH)
+
+elif (action == 'datos'):
+    init()
+    data, sw1, sw2 = enviarAPDU(selectFile)
+    data, sw1, sw2 = enviarAPDU(selectFile2)
+
+    print(data)
+    print(sw1)
+    print(sw2)
 else:
     print("ACCION NO DEFINIDA")

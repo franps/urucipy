@@ -23,20 +23,6 @@ selectFile = [0x00, 0xA4, 0x04, 0x00, 0x02, 0xB0, 0x01, 0x00]
 selectFile2 = [0x00, 0xB0, 0x00, 0x00, 0x00]
 ####################################################
 
-if(len(sys.argv) == 1):
-    print("Faltan argumentos")
-else:
-    action = sys.argv[1]
-    userpin = sys.argv[2] if len(sys.argv) > 3 else False
-    stringhash = sys.argv[3] if len(sys.argv) > 3 else False
-
-cardtype = ATRCardType(toBytes(
-    "3B 7F 94 00 00 80 31 80 65 B0 85 03 00 EF 12 0F FF 82 90 00"))  # Solo eCI de UY
-cardrequest = CardRequest(timeout=20, cardType=cardtype)
-
-if (len(cardrequest.getReaders()) == 0):
-    print("Lector no conectado")
-
 
 def encrypt_string(hash_string):
     sha_signature = hashlib.sha256(hash_string.encode()).hexdigest()
@@ -110,6 +96,20 @@ def sign(toSign):
 ###     - datos ( void ):       devuelve datos de la cedula conectada   ###
 ###########################################################################
 
+
+if(len(sys.argv) == 1):
+    print("Faltan argumentos")
+else:
+    action = sys.argv[1]
+    userpin = sys.argv[2] if len(sys.argv) > 3 else False
+    stringhash = sys.argv[3] if len(sys.argv) > 3 else False
+
+cardtype = ATRCardType(toBytes(
+    "3B 7F 94 00 00 80 31 80 65 B0 85 03 00 EF 12 0F FF 82 90 00"))  # Solo eCI de UY
+cardrequest = CardRequest(timeout=20, cardType=cardtype)
+
+if (len(cardrequest.getReaders()) == 0):
+    print("Lector no conectado")
 
 if (action == 'readerData'):
     print("reader" + str(cardrequest.getReaders()[0]))

@@ -20,7 +20,7 @@ PSO_HASH = [0x00, 0x2A, 0x90, 0xA0, 0x20]
 PSO_CDS = [0x00, 0x2A, 0x9E, 0x9A, 0x00, 0xFF, 0x00]
 
 selectFile = [0x00, 0xA4, 0x04, 0x00, 0x02, 0xB0, 0x01, 0x00]
-selectFile2 = [0x00, 0xB0, 0x00, 0x00, 0x00]
+
 ####################################################
 
 
@@ -88,13 +88,13 @@ def sign(toSign):
     else:
         print("PIN INVALIDO")
 
-###########################################################################
-### Hay dos acciones definidas:                                         ###
-###     - readerData ( void ) : imprime la marca y modelo del Lector    ###
-###     - firmar (pin, string): hace un hash y encripta con la clave    ###
-###                             privada un string pasado por parametro  ###
-###     - datos ( void ):       devuelve datos de la cedula conectada   ###
-###########################################################################
+###############################################################################
+### Hay tres acciones definidas:                                            ###
+###     - readerData ( void ) : imprime la marca y modelo del Lector        ###
+###     - firmar (pin, string): hace un hash y encripta con la clave        ###
+###                             privada un string pasado por parametro      ###
+###     - datos ( void ):       devuelve datos de la cedula conectada       ###
+###############################################################################
 
 
 if(len(sys.argv) == 1):
@@ -113,19 +113,28 @@ while (1):
         print("Lector no conectado")
     else:
         if (action == 'readerData'):
+            print("--- Reader Data ---")
             print("reader" + str(cardrequest.getReaders()[0]))
 
         elif (action == 'firmar'):
+            print("--- Sign Hash ---")
             MIHASH = toHex(encrypt_string(stringhash))
             init()
             sign(MIHASH)
 
         elif (action == 'datos'):
+            print("--- Get data ---")
             init()
             data, sw1, sw2 = enviarAPDU(selectFile)
-            data, sw1, sw2 = enviarAPDU(selectFile2)
+            print(sw1)
+            print(sw2)
+            selectFile2 = [0x00, 0xB0, 0x00, 0xFF, 0xFF]
+            for i in range(255):
+                selectFile2[2] += 1
+                selectFile2[3] -= 1
+                data, sw1, sw2 = enviarAPDU(selectFile2)
+                print(data)
 
-            print(data)
             print(sw1)
             print(sw2)
         else:

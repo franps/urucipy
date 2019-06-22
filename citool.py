@@ -106,26 +106,28 @@ else:
 
 cardtype = ATRCardType(toBytes(
     "3B 7F 94 00 00 80 31 80 65 B0 85 03 00 EF 12 0F FF 82 90 00"))  # Solo eCI de UY
-cardrequest = CardRequest(timeout=20, cardType=cardtype)
 
-if (len(cardrequest.getReaders()) == 0):
-    print("Lector no conectado")
+while (1):
+    cardrequest = CardRequest(timeout=20, cardType=cardtype)
+    if (len(cardrequest.getReaders()) == 0):
+        print("Lector no conectado")
+    else:
+        if (action == 'readerData'):
+            print("reader" + str(cardrequest.getReaders()[0]))
 
-if (action == 'readerData'):
-    print("reader" + str(cardrequest.getReaders()[0]))
+        elif (action == 'firmar'):
+            MIHASH = toHex(encrypt_string(stringhash))
+            init()
+            sign(MIHASH)
 
-elif (action == 'firmar'):
-    MIHASH = toHex(encrypt_string(stringhash))
-    init()
-    sign(MIHASH)
+        elif (action == 'datos'):
+            init()
+            data, sw1, sw2 = enviarAPDU(selectFile)
+            data, sw1, sw2 = enviarAPDU(selectFile2)
 
-elif (action == 'datos'):
-    init()
-    data, sw1, sw2 = enviarAPDU(selectFile)
-    data, sw1, sw2 = enviarAPDU(selectFile2)
-
-    print(data)
-    print(sw1)
-    print(sw2)
-else:
-    print("ACCION NO DEFINIDA")
+            print(data)
+            print(sw1)
+            print(sw2)
+        else:
+            print("ACCION NO DEFINIDA")
+    time.sleep(1)

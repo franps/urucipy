@@ -1,3 +1,4 @@
+# encoding: utf-8
 import hashlib
 import sys
 import time
@@ -10,31 +11,32 @@ from smartcard.util import toHexString, toBytes
 action = userpin = stringhash = False
 
 ########### COMANDOS PRECARGADOS ####################
-#               | CLA | INS | P1 | P2  |  LC |      DATA  ...
-IAS = [0x00, 0xA4, 0x04, 0x00, 0x0C, 0xA0, 0x00, 0x00,
-       0x00, 0x18, 0x40, 0x00, 0x00, 0x01, 0x63, 0x42, 0x00]
+#          | CLA | INS | P1 | P2  |  LC |      DATA  ...
+selectIAS = [0x00, 0xA4, 0x04, 0x00, 0x0C, 0xA0, 0x00, 0x00,
+             0x00, 0x18, 0x40, 0x00, 0x00, 0x01, 0x63, 0x42, 0x00]
 verifyPIN = [0x00, 0x20, 0x00, 0x11, 0x0C]
-
 MSE_SET_DST = [0x00, 0x22, 0x41, 0xB6, 0x06]
 PSO_HASH = [0x00, 0x2A, 0x90, 0xA0, 0x20]
 PSO_CDS = [0x00, 0x2A, 0x9E, 0x9A, 0x00, 0xFF, 0x00]
-
-selectFile = [0x00, 0xA4, 0x00, 0x00, 0x02, 0x70, 0x01]
-
+selectFile = [0x00, 0xA4, 0x00, 0x00, 0x02]
+getResponse = [0XA0, 0XC0, 0x00, 0x00]
+readBinary = [0x00, 0xB0, 0x00, 0x00]
 ####################################################
 cardtype = ATRCardType(toBytes(
     "3B 7F 94 00 00 80 31 80 65 B0 85 03 00 EF 12 0F FF 82 90 00"))  # Solo eCI de UY
 ####################################################
 
 
+def enviarAPDU(cmd):
+    print(cmd)
+    data, sw1, sw2 = cardservice.connection.transmit(cmd)
+    print(hex(sw1), hex(sw2))
+    return [data, sw1, sw2]
+
+
 def encrypt_string(hash_string):
     sha_signature = hashlib.sha256(hash_string.encode()).hexdigest()
     return sha_signature
-
-
-def enviarAPDU(cmd):
-    data, sw1, sw2 = cardservice.connection.transmit(cmd)
-    return [data, sw1, sw2]
 
 
 def toHex(str):
@@ -54,15 +56,6 @@ def toPinHex(pin):
         else:
             lst.append(int('0x3' + pin[i], 16))
     return lst
-
-
-def selectIAS():
-    ########### COMANDO selectIAS ################
-    data, sw1, sw2 = enviarAPDU(IAS)
-    if (hex(sw1) == hex(0x90) and hex(sw2) == hex(0x00)):
-        print(hex(sw1), hex(sw2))
-    else:
-        print("ERROR AL LEER DOCUMENTO " + hex(sw1) + " " + hex(sw2))
 
 
 def sign(toSign):
@@ -118,14 +111,32 @@ while (1):
         elif (action == 'firmar'):
             print("--- Sign Hash ---")
             MIHASH = toHex(encrypt_string(stringhash))
-            selectIAS()
-            sign(MIHASH)
+            if(enviarAPDU(selectIAS)):
+                sign(MIHASH)
 
         elif (action == 'datos'):
             print("--- Get data ---")
-            selectIAS()
-            data, sw1, sw2 = enviarAPDU(selectFile)
-            print(data, hex(sw1), hex(sw2))
+            if(enviarAPDU(selectIAS)):
+                data, sw1, sw2 = enviarAPDU(selectFile + [0x70, 0x02])
+                data, sw1, sw2 = enviarAPDU(getResponse+[sw2])
+                # e = [int(hex(data[5]))] print(le)
+                data, sw1, sw2 = enviarAPDU(readBinary+[0x65])
+                print(data)
+                l = ""
+                nonw = True
+                for i in data:
+                    i = chr(i)
+                    if (i.isalpha() or i.isnumeric()):
+                        l += i
+                        nonw = True
+                    else:
+                        if nonw:
+                            l += " "
+                            nonw = False
+                print(l)
+                #print("".join(map(chr, data)))
+                #hexdata = bytes(data)
+                # print(hexdata)
         else:
             print("ACCION NO DEFINIDA")
-    time.sleep(1)
+    time.sleep(2)

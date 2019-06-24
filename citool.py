@@ -11,16 +11,19 @@ action = userpin = stringhash = False
 
 ########### COMANDOS PRECARGADOS ####################
 #               | CLA | INS | P1 | P2  |  LC |      DATA  ...
-selectIAS = [0x00, 0xA4, 0x04, 0x00, 0x0C, 0xA0, 0x00, 0x00,
-             0x00, 0x18, 0x40, 0x00, 0x00, 0x01, 0x63, 0x42, 0x00, 0x00]
+IAS = [0x00, 0xA4, 0x04, 0x00, 0x0C, 0xA0, 0x00, 0x00,
+       0x00, 0x18, 0x40, 0x00, 0x00, 0x01, 0x63, 0x42, 0x00]
 verifyPIN = [0x00, 0x20, 0x00, 0x11, 0x0C]
 
 MSE_SET_DST = [0x00, 0x22, 0x41, 0xB6, 0x06]
 PSO_HASH = [0x00, 0x2A, 0x90, 0xA0, 0x20]
 PSO_CDS = [0x00, 0x2A, 0x9E, 0x9A, 0x00, 0xFF, 0x00]
 
-selectFile = [0x00, 0xA4, 0x04, 0x00, 0x02, 0xB0, 0x01, 0x00]
+selectFile = [0x00, 0xA4, 0x00, 0x00, 0x02, 0x70, 0x01]
 
+####################################################
+cardtype = ATRCardType(toBytes(
+    "3B 7F 94 00 00 80 31 80 65 B0 85 03 00 EF 12 0F FF 82 90 00"))  # Solo eCI de UY
 ####################################################
 
 
@@ -53,19 +56,13 @@ def toPinHex(pin):
     return lst
 
 
-def init():
-
-    global cardservice
-    cardservice = cardrequest.waitforcard()
-    cardservice.connection.connect(CardConnection.T0_protocol)
-
+def selectIAS():
     ########### COMANDO selectIAS ################
-    data, sw1, sw2 = enviarAPDU(selectIAS)
-    if (sw1 != 0x90 and sw2 != 0x0):
-        print("ERROR AL LEER DOCUMENTO")
+    data, sw1, sw2 = enviarAPDU(IAS)
+    if (hex(sw1) == hex(0x90) and hex(sw2) == hex(0x00)):
+        print(hex(sw1), hex(sw2))
     else:
-        print("Waiting...")
-        time.sleep(1)
+        print("ERROR AL LEER DOCUMENTO " + hex(sw1) + " " + hex(sw2))
 
 
 def sign(toSign):
@@ -88,6 +85,7 @@ def sign(toSign):
     else:
         print("PIN INVALIDO")
 
+
 ###############################################################################
 ### Hay tres acciones definidas:                                            ###
 ###     - readerData ( void ) : imprime la marca y modelo del Lector        ###
@@ -96,6 +94,10 @@ def sign(toSign):
 ###     - datos ( void ):       devuelve datos de la cedula conectada       ###
 ###############################################################################
 
+global cardservice
+cardrequest = CardRequest(timeout=20, cardType=cardtype)
+cardservice = cardrequest.waitforcard()
+cardservice.connection.connect(CardConnection.T0_protocol)
 
 if(len(sys.argv) == 1):
     print("Faltan argumentos")
@@ -104,11 +106,8 @@ else:
     userpin = sys.argv[2] if len(sys.argv) > 3 else False
     stringhash = sys.argv[3] if len(sys.argv) > 3 else False
 
-cardtype = ATRCardType(toBytes(
-    "3B 7F 94 00 00 80 31 80 65 B0 85 03 00 EF 12 0F FF 82 90 00"))  # Solo eCI de UY
 
 while (1):
-    cardrequest = CardRequest(timeout=20, cardType=cardtype)
     if (len(cardrequest.getReaders()) == 0):
         print("Lector no conectado")
     else:
@@ -119,24 +118,14 @@ while (1):
         elif (action == 'firmar'):
             print("--- Sign Hash ---")
             MIHASH = toHex(encrypt_string(stringhash))
-            init()
+            selectIAS()
             sign(MIHASH)
 
         elif (action == 'datos'):
             print("--- Get data ---")
-            init()
+            selectIAS()
             data, sw1, sw2 = enviarAPDU(selectFile)
-            print(sw1)
-            print(sw2)
-            selectFile2 = [0x00, 0xB0, 0x00, 0xFF, 0xFF]
-            for i in range(255):
-                selectFile2[2] += 1
-                selectFile2[3] -= 1
-                data, sw1, sw2 = enviarAPDU(selectFile2)
-                print(data)
-
-            print(sw1)
-            print(sw2)
+            print(data, hex(sw1), hex(sw2))
         else:
             print("ACCION NO DEFINIDA")
     time.sleep(1)

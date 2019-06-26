@@ -79,6 +79,13 @@ def sign(toSign):
         print("PIN INVALIDO")
 
 
+def getLength(li):
+    # if hex(li[4]) == 0x00
+    l = hex(li[5])
+    print(l)
+    return l
+
+
 ###############################################################################
 ### Hay tres acciones definidas:                                            ###
 ###     - readerData ( void ) : imprime la marca y modelo del Lector        ###
@@ -119,9 +126,9 @@ while (1):
             if(enviarAPDU(selectIAS)):
                 data, sw1, sw2 = enviarAPDU(selectFile + [0x70, 0x02])
                 data, sw1, sw2 = enviarAPDU(getResponse+[sw2])
-                # e = [int(hex(data[5]))] print(le)
-                data, sw1, sw2 = enviarAPDU(readBinary+[0x65])
-                print(data)
+                length = getLength(data)
+                data, sw1, sw2 = enviarAPDU(readBinary+length)
+
                 l = ""
                 nonw = True
                 for i in data:
@@ -134,9 +141,6 @@ while (1):
                             l += " "
                             nonw = False
                 print(l)
-                #print("".join(map(chr, data)))
-                #hexdata = bytes(data)
-                # print(hexdata)
         else:
             print("ACCION NO DEFINIDA")
     time.sleep(2)
